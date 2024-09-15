@@ -7,7 +7,7 @@ export const register = async (req, res) => {
 
   try {
     // hash the password
-    const hashedPassword = await bcrypt.hash(password, 20);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     //create user in db
     const user = await prisma.User.create({
@@ -34,12 +34,11 @@ export const login = async (req, res) => {
       where: { username },
     });
 
-    if (user == null) res.status(401).json({ message: "Invalid credentials!" });
+    if (!user) res.status(400).json({ message: "Invalid credentials!" });
 
     //validate password
     const pass = await bcrypt.compare(password, user.password);
-
-    if (pass == null) res.status(401).json({ message: "Invalid credentials!" });
+    if (!pass) res.status(400).json({ message: "Invalid credentials!" });
 
     //generate token
 
@@ -55,6 +54,8 @@ export const login = async (req, res) => {
       { expiresIn: age }
     );
 
+    const { password: userPassword, ...userInfo } = user;
+
     res
       .cookie("token", jwtToken, {
         httpOnly: true,
@@ -62,7 +63,7 @@ export const login = async (req, res) => {
         maxAge: age,
       })
       .status(200)
-      .json({ message: "Login successfully!" });
+      .json({ userInfo });
   } catch (e) {
     console.log(e);
     res.status(500).json({ message: "Failed to login!" });
